@@ -1,0 +1,40 @@
+version: "3.8"
+services:
+  db:
+    image: postgres
+    container_name: fit-db
+    environment:
+      POSTGRES_USER: fitapp
+      POSTGRES_PASSWORD: fitapp
+      POSTGRES_DB: fitdb
+    ports:
+      - ${DB_PORT}:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    restart: always
+    env_file:
+      - .env
+
+  app:
+    image: fit-app
+    container_name: fit-app
+    working_dir: /usr/local/apps/fitapp
+    build: .
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_USER: fitapp
+      DB_PASSWORD: fitapp
+      DB_NAME: fitdb
+      DB_PORT: 5432  # Internal Docker port for PostgreSQL
+    restart: always
+    volumes:
+      - ./:/usr/local/apps/fitapp
+    env_file:
+      - .env
+
+volumes:
+  db-data:
