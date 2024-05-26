@@ -6,7 +6,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import workoutRouter from "./routes/workout.route";
-import calculatorRouter from "./routes/calculator.route";
 
 const serverPort: number = parseInt(process.env.SERVER_PORT || "4000", 10);
 
@@ -40,7 +39,6 @@ class AppServer {
 
         // Workouts
         this.app.use("/api/v1/workouts", workoutRouter);
-        this.app.use("/api/v1/calculator", calculatorRouter);
 
         // Custom 404
         this.app.use((_req: Request, res: Response, _next: NextFunction) => {

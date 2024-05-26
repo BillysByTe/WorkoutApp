@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { ExerciseSchema } from "../models/exercise.schema";
+import { ExerciseSchema, UpdateExerciseSchema } from "../models/exercise.schema";
 import { ExerciseData } from "../types/exercise.types";
 import { ZodError } from "zod";
 
@@ -9,6 +9,20 @@ import { pool } from "../db/db";
 export const validateExerciseData = (req: Request, res: Response, next: NextFunction) => {
     try {
         ExerciseSchema.parse(req.body);
+        next();
+    } catch (error) {
+        if (error instanceof ZodError) {
+            const validationErrors = error.errors.map((err) => err.message);
+            return res.status(400).json({ message: validationErrors });
+        }
+        return res.status(400).json({ message: "Internal Server Error" });
+    }
+};
+
+export const validateUpdateExerciseData = (req: Request, res: Response, next: NextFunction) => {
+    try {
+        UpdateExerciseSchema.parse(req.body);
+
         next();
     } catch (error) {
         if (error instanceof ZodError) {
@@ -36,10 +50,12 @@ export const validateExerciseID = async (req: Request, res: Response, next: Next
 
 export const validateExerciseName = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Check if exercise exists already
-        const checkResult = await pool.query(checkExerciseExistsByName, [req.body.exerciseData.name]);
+        const exerciseData: ExerciseData = req.body;
 
-        if (checkResult.rowCount) {
+        // Check if exercise exists already
+        const checkResult = await pool.query(checkExerciseExistsByName, [exerciseData.name]);
+
+        if (checkResult.rows[0].exists) {
             return res.status(409).json({ message: "Error: Exercise already exists" });
         }
         next();

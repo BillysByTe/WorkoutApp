@@ -14,7 +14,7 @@ export const editExercise: (
     const argumentArr: (string | number)[] = [id];
     let count = 2;
 
-    if (name || name !== "") {
+    if (name && name !== "") {
         paramArr.push(`name = $${count}`);
         count++;
         argumentArr.push(name);
