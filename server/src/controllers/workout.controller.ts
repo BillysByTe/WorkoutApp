@@ -1,22 +1,15 @@
 import { Request, Response } from "express";
 import { pool } from "../db/db";
+import { QueryResult } from "pg";
 
-import { ExerciseData } from "../types/exercise.types";
-import {
-    checkExerciseExistsByName,
-    addExercise,
-    getExercise,
-    getAllExercise,
-    checkExerciseExistsByID,
-    editExercise,
-    removeExercise,
-} from "../services/workout.services";
+import { ExerciseData } from "../models/exercise.schema";
+import { addExercise, getExercise, getAllExercise, editExercise, removeExercise } from "../services/workout.services";
 
 export const createExercise = async (req: Request, res: Response) => {
     try {
         const exerciseData: ExerciseData = req.body;
 
-        const addResult = await pool.query(addExercise, [
+        const addResult: QueryResult<ExerciseData> = await pool.query(addExercise, [
             exerciseData.name,
             exerciseData.sets,
             exerciseData.repetitions,
@@ -31,18 +24,26 @@ export const createExercise = async (req: Request, res: Response) => {
 
 export const fetchExercise = async (req: Request, res: Response) => {
     try {
-        const fetchResult = await pool.query(getExercise, [parseInt(req.params.id, 10)]);
+        const fetchResult: QueryResult<ExerciseData> = await pool.query(getExercise, [parseInt(req.params.id, 10)]);
 
-        return res.status(200).json({ message: "Successfully found exercise" });
+        return res.status(200).json({
+            message: "Successfully found exercise",
+            exercise: fetchResult.rows[0],
+        });
     } catch (error) {
         console.error(error);
+        return res.status(500).json({ message: "Internal Server Error" });
     }
 };
 
 export const fetchAllExercises = async (req: Request, res: Response) => {
     try {
+        const fetchAllResult: QueryResult<ExerciseData> = await pool.query(getAllExercise);
+
+        return res.status(200).json({ message: "Successfully found all exercises", exercise: fetchAllResult.rows });
     } catch (error) {
         console.error(error);
+        return res.status(500).json({ message: "Internal Server Error" });
     }
 };
 
@@ -50,16 +51,17 @@ export const updateExercise = async (req: Request, res: Response) => {
     try {
         const exerciseData: ExerciseData = req.body;
 
-        const editProperties = editExercise(
-            parseInt(req.params.id, 10),
-            exerciseData.name,
-            exerciseData.sets,
-            exerciseData.repetitions,
-        );
+        const editProperties: {
+            argumentArr: (string | number)[];
+            editStatement: string;
+        } = editExercise(parseInt(req.params.id, 10), exerciseData.name, exerciseData.sets, exerciseData.repetitions);
 
         console.log(editProperties.editStatement);
 
-        const updateResult = await pool.query(editProperties.editStatement, editProperties.argumentArr);
+        const updateResult: QueryResult<ExerciseData> = await pool.query(
+            editProperties.editStatement,
+            editProperties.argumentArr,
+        );
 
         return res.status(200).json({ message: "Successfully updated exercise" });
     } catch (error) {
@@ -70,10 +72,11 @@ export const updateExercise = async (req: Request, res: Response) => {
 
 export const deleteExercise = async (req: Request, res: Response) => {
     try {
-        const deleteResult = await pool.query(removeExercise, [parseInt(req.params.id, 10)]);
+        const deleteResult: QueryResult<ExerciseData> = await pool.query(removeExercise, [parseInt(req.params.id, 10)]);
 
         return res.status(200).json({ message: "Successfully removed exercise" });
     } catch (error) {
         console.error(error);
+        return res.status(500).json({ message: "Internal Server Error" });
     }
 };

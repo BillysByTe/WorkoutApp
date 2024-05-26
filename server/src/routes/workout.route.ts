@@ -8,14 +8,19 @@ import {
     deleteExercise,
 } from "../controllers/workout.controller";
 
-import { validateExerciseData, validateExerciseID, validateExerciseName } from "../middlewares/dataValidator";
+import {
+    validateExerciseData,
+    validateUpdateExerciseData,
+    validateExerciseID,
+    validateExerciseName,
+} from "../middlewares/workoutDataValidator";
 
 const workoutRouter = express.Router();
 
-workoutRouter.post("/", validateExerciseName, express.json(), validateExerciseData, createExercise);
+workoutRouter.post("/", express.json(), validateExerciseName, validateExerciseData, createExercise);
 workoutRouter.get("/:id", validateExerciseID, fetchExercise);
-workoutRouter.get("/:", fetchAllExercises);
-workoutRouter.patch("/:id", validateExerciseID, express.json(), validateExerciseData, updateExercise);
+workoutRouter.get("/", fetchAllExercises);
+workoutRouter.patch("/:id", express.json(), validateExerciseID, validateUpdateExerciseData, updateExercise);
 workoutRouter.delete("/:id", validateExerciseID, deleteExercise);
 
 export default workoutRouter;
