@@ -1,7 +1,7 @@
 import { StyleSheet, View, TouchableOpacity, Modal } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors } from "../../../src/constants/Colors";
-import { AddWorkout } from "../../../src/services/addWorkout.services";
+import { AddWorkout } from "@/src/services/addWorkout.services";
 
 type WorkoutModalProps = {
     isVisible: boolean;
