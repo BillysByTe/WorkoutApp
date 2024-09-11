@@ -20,6 +20,18 @@ const renderExerciseList = (exercise: Exercise) => {
     );
 };
 
+export const WorkoutList = () => {
+    return (
+        <FlatList
+            data={testWorkout}
+            keyExtractor={(workoutItem: Workout) => workoutItem.id.toString()}
+            renderItem={({ item }: { item: Workout }) => renderWorkoutList(item)}
+            removeClippedSubviews={true}
+            showsVerticalScrollIndicator={true}
+        />
+    );
+};
+
 const renderWorkoutList = (workout: Workout) => {
     return (
         <View style={styles.workoutContainer} key={workout.id}>
@@ -30,18 +42,6 @@ const renderWorkoutList = (workout: Workout) => {
                 renderItem={({ item }) => renderExerciseList(item)}
             />
         </View>
-    );
-};
-
-export const WorkoutList = () => {
-    return (
-        <FlatList
-            data={testWorkout}
-            keyExtractor={(workoutItem: Workout) => workoutItem.id.toString()}
-            renderItem={({ item }: { item: Workout }) => renderWorkoutList(item)}
-            removeClippedSubviews={true}
-            showsVerticalScrollIndicator={true}
-        />
     );
 };
 
