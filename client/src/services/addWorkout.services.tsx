@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, TextInput, Button } from "react-native";
-import { useEffect, useState } from "react";
+import { View, Text, StyleSheet, TextInput, Button, ActivityIndicator } from "react-native";
+import { useState } from "react";
 import { Colors } from "@/src/constants/Colors";
 import * as SQLite from "expo-sqlite";
+import { useSQLiteContext, SQLiteDatabase } from "expo-sqlite";
 import { Exercise, Workout } from "../types/exercises.types";
 
 export const addWorkout: string = "INSERT INTO workouts (name) VALUES ($1)";
@@ -16,71 +17,23 @@ const MAX_EXERCISE_NAME_LENGTH = 50;
 const MAX_EXERCISE_LENGTH = 3;
 
 export const AddWorkout = () => {
-    const [db, setDb] = useState<SQLite.SQLiteDatabase>();
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [currentWorkoutName, setCurrentWorkoutName] = useState<string>("");
     const [currentExercise, setCurrentExercise] = useState<string>("");
     const [currentSets, setCurrentSets] = useState<number | "">("");
     const [currentReps, setCurrentReps] = useState<number | "">("");
 
-    /* EXECUTES ON MOUNT TO LOAD DATABASE FIRST */
-    useEffect(() => {
-        const initDb = async () => {
-            try {
-                const db = await SQLite.openDatabaseAsync("workout.db");
-                setDb(db);
-            } catch (error) {
-                console.error("DATABASE LOAD UNSUCCESSFUL: ", error);
-            }
-        };
-        initDb();
-    }, []);
-
-    /* EXECUTES ONLY IF DATABASE IS LOADED */
-    useEffect(() => {
-        if (db) {
-            const addTable = async () => {
-                try {
-                    await db.execAsync(`
-                        CREATE TABLE IF NOT EXISTS workouts (
-                        id INTEGER PRIMARY KEY,
-                        name VARCHAR(35) NOT NULL
-                        );
-                    `);
-                    await db.execAsync(`
-                        CREATE TABLE IF NOT EXISTS exercises (
-                        id INTEGER PRIMARY KEY,
-                        workoutId INTEGER NOT NULL, 
-                        name VARCHAR(50) NOT NULL,
-                        sets INT NOT NULL CHECK (sets >= 0 and sets <= 100),
-                        repetitions INT NOT NULL CHECK (repetitions >= 0 and repetitions <= 100),
-                        FOREIGN KEY (workoutId) REFERENCES workouts (id) ON DELETE CASCADE
-                        );
-                    `);
-                } catch (error) {
-                    console.error(error);
-                }
-            };
-
-            try {
-                addTable();
-                setIsLoading(false);
-            } catch (error) {
-                console.error("Error adding table: " + error);
-                setIsLoading(true);
-            }
-        }
-    }, [db]);
-
     if (isLoading) {
         return (
             <View>
                 <Text style={styles.text}>Loading...</Text>
+                <ActivityIndicator size="large" color="#ffffff" />
             </View>
         );
     }
 
     const execAddWorkout = () => {
+        const db: SQLiteDatabase = useSQLiteContext();
         if (db) {
             const add = async () => {
                 try {
@@ -118,6 +71,7 @@ export const AddWorkout = () => {
 
     // Use AddWorkout First
     const execAddExercise = (workoutId: number) => {
+        const db: SQLiteDatabase = useSQLiteContext();
         if (db) {
             const add = async () => {
                 const statement = await db.prepareAsync(addExercise);
@@ -140,8 +94,9 @@ export const AddWorkout = () => {
     const execGetExercise = () => {};
 
     const execGetAllWorkouts = () => {
+        const db: SQLiteDatabase = useSQLiteContext();
         if (db) {
-            const getAllWorkoutsAndExercises = async (): Promise<
+            const getWorkoutsAndExercises = async (): Promise<
                 | {
                       workoutsResult: Workout[];
                       exercisesResult: Exercise[];
@@ -162,7 +117,7 @@ export const AddWorkout = () => {
                 }
             };
             const printAll = async () => {
-                const result = await getAllWorkoutsAndExercises();
+                const result = await getWorkoutsAndExercises();
                 if (result) {
                     const exerciseMap: Map<number, Exercise[]> = new Map();
 
@@ -194,6 +149,7 @@ export const AddWorkout = () => {
     const execCheckExerciseExistsById = () => {};
 
     const wipeDb = () => {
+        const db: SQLiteDatabase = useSQLiteContext();
         if (db) {
             const deleteIt = async () => {
                 db.closeAsync();
@@ -278,77 +234,6 @@ export const AddWorkout = () => {
         </View>
     );
 };
-const AddExerciseList = () => {
-    return (
-        <View style={[styles.InnerTextContainer, styles.TopTextContainer]}>
-            <Text style={styles.textTitle}>Exercise Type</Text>
-            <TextInput
-                style={styles.textInput}
-                keyboardType="default"
-                //value={}
-                maxLength={50}
-                placeholder="Enter Exercise"
-                placeholderTextColor={styles.textInput.color}
-                onChangeText={() => {}}
-            ></TextInput>
-        </View>
-    );
-};
-/*
-const renderAddExerciseListItem = ({ item, index }: { item: any; index: number }) => {
-    return (
-        <View style={[styles.InnerTextContainer, styles.TopTextContainer]}>
-            <Text style={styles.textTitle}>Exercise Type</Text>
-            <TextInput
-                style={styles.textInput}
-                keyboardType="default"
-                //value={}
-                maxLength={50}
-                placeholder="Enter Exercise"
-                placeholderTextColor={styles.textInput.color}
-                onChangeText={() => {}}
-            ></TextInput>
-        </View>
-        /*
-        <View style={styles.container}>
-            <View style={[styles.InnerTextContainer, styles.TopTextContainer]}>
-                <Text style={styles.textTitle}>Exercise Type</Text>
-                <TextInput
-                    style={styles.textInput}
-                    keyboardType="default"
-                    //value={}
-                    maxLength={50}
-                    placeholder="Enter Exercise"
-                    placeholderTextColor={styles.textInput.color}
-                    onChangeText={() => {}}
-                ></TextInput>
-            </View>
-            <View style={[styles.InnerTextContainer, styles.MiddleTextContainer]}>
-                <Text style={styles.textTitle}>Sets</Text>
-                <TextInput
-                    style={styles.textInput}
-                    keyboardType="numeric"
-                    //value={}
-                    maxLength={3}
-                    placeholder="Enter Sets"
-                    placeholderTextColor={styles.textInput.color}
-                    onChangeText={() => {}}
-                ></TextInput>
-            </View>
-            <View style={[styles.InnerTextContainer, styles.BottomTextContainer]}>
-                <Text style={styles.textTitle}>Repetitions</Text>
-                <TextInput
-                    style={styles.textInput}
-                    keyboardType="numeric"
-                    //value={}
-                    maxLength={3}
-                    placeholder="Enter Repititions"
-                    placeholderTextColor={styles.textInput.color}
-                    onChangeText={() => {}}
-                ></TextInput>
-            </View>
-        </View>
-        */
 
 const styles = StyleSheet.create({
     container: {
