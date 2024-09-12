@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { useState } from "react";
-import { Colors } from "../../../src/constants/Colors";
+import { Colors } from "@/src/constants/Colors";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { WorkoutList } from "../../../src/components/WorkoutList";
-import { AddWorkoutModal } from "../../../src/components/modals/WorkoutModal";
+import { WorkoutList } from "@/src/components/WorkoutList";
+import { AddWorkoutModal } from "@/src/components/modals/WorkoutModal";
 
 export default function WorkoutScreen() {
     const [isModalVisible, setisModalVisible] = useState(false);
