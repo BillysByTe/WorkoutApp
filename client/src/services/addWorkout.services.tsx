@@ -1,14 +1,76 @@
-import { View, Text, StyleSheet, TextInput, FlatList } from "react-native";
-import { useState } from "react";
-import { Colors } from "../constants/Colors";
+import { View, Text, StyleSheet, TextInput, Button } from "react-native";
+import { useEffect, useState } from "react";
+import { Colors } from "@/src/constants/Colors";
 import * as SQLite from "expo-sqlite";
 import { Exercise, Workout } from "../types/exercises.types";
 
+export const addWorkout: string = "INSERT INTO workouts (name) VALUES ($1)";
+export const addExercise: string = "INSERT INTO exercises (name, sets, repetitions, workoutId) VALUES ($1, $2, $3, $4)";
+export const getExercise: string = "SELECT * FROM exercises WHERE id = $1";
+export const getAllExercise: string = "SELECT * FROM exercises";
+export const checkExerciseExistsByName: string = "SELECT EXISTS (SELECT 1 FROM exercises WHERE name = $1)";
+export const checkExerciseExistsByID: string = "SELECT EXISTS (SELECT 1 FROM exercises WHERE id = $1)";
+
+const MAX_WORKOUT_NAME_LENGTH = 35;
+const MAX_EXERCISE_NAME_LENGTH = 50;
+const MAX_EXERCISE_LENGTH = 3;
+
 export const AddWorkout = () => {
-    const db = SQLite.openDatabaseAsync("workout.db");
-    const [isLoading, setIsLoading] = useState(false);
-    const [workouts, setWorkouts] = useState<Workout[]>([]);
-    const [currentWorkoutName, setCurrentWorkoutName] = useState(undefined);
+    const [db, setDb] = useState<SQLite.SQLiteDatabase>();
+    const [isLoading, setIsLoading] = useState(true);
+    const [currentWorkoutName, setCurrentWorkoutName] = useState<string>("");
+    const [currentExercise, setCurrentExercise] = useState<string>("");
+    const [currentSets, setCurrentSets] = useState<number | "">("");
+    const [currentReps, setCurrentReps] = useState<number | "">("");
+
+    /* EXECUTES ON MOUNT TO LOAD DATABASE FIRST */
+    useEffect(() => {
+        const initDb = async () => {
+            try {
+                const db = await SQLite.openDatabaseAsync("workout.db");
+                setDb(db);
+            } catch (error) {
+                console.error("DATABASE LOAD UNSUCCESSFUL: ", error);
+            }
+        };
+        initDb();
+    }, []);
+
+    /* EXECUTES ONLY IF DATABASE IS LOADED */
+    useEffect(() => {
+        if (db) {
+            const addTable = async () => {
+                try {
+                    await db.execAsync(`
+                        CREATE TABLE IF NOT EXISTS workouts (
+                        id INTEGER PRIMARY KEY,
+                        name VARCHAR(35) NOT NULL
+                        );
+                    `);
+                    await db.execAsync(`
+                        CREATE TABLE IF NOT EXISTS exercises (
+                        id INTEGER PRIMARY KEY,
+                        workoutId INTEGER NOT NULL, 
+                        name VARCHAR(50) NOT NULL,
+                        sets INT NOT NULL CHECK (sets >= 0 and sets <= 100),
+                        repetitions INT NOT NULL CHECK (repetitions >= 0 and repetitions <= 100),
+                        FOREIGN KEY (workoutId) REFERENCES workouts (id) ON DELETE CASCADE
+                        );
+                    `);
+                } catch (error) {
+                    console.error(error);
+                }
+            };
+
+            try {
+                addTable();
+                setIsLoading(false);
+            } catch (error) {
+                console.error("Error adding table: " + error);
+                setIsLoading(true);
+            }
+        }
+    }, [db]);
 
     if (isLoading) {
         return (
@@ -18,38 +80,222 @@ export const AddWorkout = () => {
         );
     }
 
+    const execAddWorkout = () => {
+        if (db) {
+            const add = async () => {
+                try {
+                    const statement = await db.prepareAsync(addWorkout);
+                    try {
+                        const result = await statement.executeAsync<{ $1: string }>({
+                            $1: currentWorkoutName,
+                        });
+                        if (result) {
+                            try {
+                                const getWorkoutIdResult: any = await db.getFirstAsync(`
+                                    SELECT id FROM workouts ORDER BY id DESC LIMIT 1;
+                                    `);
+                                console.log("Query result:", getWorkoutIdResult.id);
+                                if (getWorkoutIdResult) {
+                                    const workoutId = getWorkoutIdResult.id;
+                                    execAddExercise(workoutId);
+                                }
+                            } catch (error) {
+                                console.error("ERROR SELECTING WORKOUT ID AND ADDING EXERCISE:", error);
+                            }
+                        }
+                    } catch (error) {
+                        console.error("ERROR ADDING WORKOUT:", error);
+                    } finally {
+                        await statement.finalizeAsync();
+                    }
+                } catch (error) {
+                    console.error("ERROR PREPARING SQL STATEMENT:", error);
+                }
+            };
+            add();
+        }
+    };
+
+    // Use AddWorkout First
+    const execAddExercise = (workoutId: number) => {
+        if (db) {
+            const add = async () => {
+                const statement = await db.prepareAsync(addExercise);
+                try {
+                    const result = await statement.executeAsync<{ $1: string; $2: number; $3: number; $4: number }>({
+                        $1: currentExercise,
+                        $2: 4,
+                        $3: 5,
+                        $4: workoutId,
+                    });
+                } catch (error) {
+                    console.error("ERROR ADDING EXERCISE:", error);
+                } finally {
+                    await statement.finalizeAsync();
+                }
+            };
+            add();
+        }
+    };
+    const execGetExercise = () => {};
+
+    const execGetAllWorkouts = () => {
+        if (db) {
+            const getAllWorkoutsAndExercises = async (): Promise<
+                | {
+                      workoutsResult: Workout[];
+                      exercisesResult: Exercise[];
+                  }
+                | undefined
+            > => {
+                try {
+                    const workoutsResult: Array<Workout> = await db.getAllAsync(`
+                        SELECT * FROM workouts
+                    `);
+
+                    const exercisesResult: Array<Exercise> = await db.getAllAsync(`
+                        SELECT * FROM exercises
+                    `);
+                    return { workoutsResult, exercisesResult };
+                } catch (error) {
+                    console.error("FAILED TO GET ALL WORKOUTS", error);
+                }
+            };
+            const printAll = async () => {
+                const result = await getAllWorkoutsAndExercises();
+                if (result) {
+                    const exerciseMap: Map<number, Exercise[]> = new Map();
+
+                    for (const exercise of result.exercisesResult as Exercise[]) {
+                        const workoutId = exercise.workoutId;
+
+                        if (!exerciseMap.has(workoutId)) {
+                            exerciseMap.set(workoutId, []);
+                        }
+                        exerciseMap.get(workoutId)?.push(exercise);
+                    }
+
+                    const workoutsMap = result.workoutsResult.map((workout) => ({
+                        ...workout,
+                        exercises: exerciseMap.get(workout.id) || [],
+                    }));
+
+                    workoutsMap.forEach((workout) => {
+                        console.log(workout.name);
+                        console.log(workout.exercises);
+                    });
+                }
+            };
+            printAll();
+        }
+    };
+
+    const execCheckExerciseExistsByName = () => {};
+    const execCheckExerciseExistsById = () => {};
+
+    const wipeDb = () => {
+        if (db) {
+            const deleteIt = async () => {
+                db.closeAsync();
+                await SQLite.deleteDatabaseAsync("workout.db");
+            };
+            deleteIt();
+            console.log("deleted db");
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.TextContainer}>
                 <Text style={styles.textTitle}>Workout Name</Text>
                 <TextInput
                     style={styles.textInput}
-                    value={currentWorkoutName}
-                    maxLength={50}
-                    placeholder="Enter Workout Name"
+                    keyboardType="default"
+                    maxLength={MAX_WORKOUT_NAME_LENGTH}
                     placeholderTextColor={styles.textInput.color}
-                    onChangeText={() => setCurrentWorkoutName}
+                    placeholder="Enter Name"
+                    value={currentWorkoutName}
+                    onChangeText={(name: string) => {
+                        setCurrentWorkoutName(name);
+                    }}
                 ></TextInput>
             </View>
-            {/*<AddExerciseList />*/}
+            <View style={styles.container}>
+                <View style={[styles.InnerTextContainer, styles.TopTextContainer]}>
+                    <Text style={styles.textTitle}>Exercise Type</Text>
+                    <TextInput
+                        style={styles.textInput}
+                        keyboardType="default"
+                        maxLength={MAX_EXERCISE_NAME_LENGTH}
+                        placeholder="Enter Exercise"
+                        placeholderTextColor={styles.textInput.color}
+                        value={currentExercise}
+                        onChangeText={(exercise: string) => {
+                            setCurrentExercise(exercise);
+                        }}
+                    ></TextInput>
+                </View>
+                <View style={[styles.InnerTextContainer, styles.MiddleTextContainer]}>
+                    <Text style={styles.textTitle}>Sets</Text>
+                    <TextInput
+                        style={styles.textInput}
+                        keyboardType="numeric"
+                        maxLength={MAX_EXERCISE_LENGTH}
+                        placeholder="Enter Sets"
+                        placeholderTextColor={styles.textInput.color}
+                        value={currentSets.toString()}
+                        onChangeText={(currentSets: string) => {
+                            const value = parseInt(currentSets, 10);
+                            if (!isNaN(value)) {
+                                setCurrentSets(parseInt(currentSets, 10));
+                            } else {
+                                setCurrentSets("");
+                            }
+                        }}
+                    ></TextInput>
+                </View>
+                <View style={[styles.InnerTextContainer, styles.BottomTextContainer]}>
+                    <Text style={styles.textTitle}>Repetitions</Text>
+                    <TextInput
+                        style={styles.textInput}
+                        keyboardType="numeric"
+                        maxLength={MAX_EXERCISE_LENGTH}
+                        placeholder="Enter Repetitions"
+                        placeholderTextColor={styles.textInput.color}
+                        value={currentReps === "" ? "" : currentReps.toString()}
+                        onChangeText={(currentReps: string) => {
+                            const value = parseInt(currentReps, 10);
+                            if (!isNaN(value)) {
+                                setCurrentReps(parseInt(currentReps, 10));
+                            } else {
+                                setCurrentReps("");
+                            }
+                        }}
+                    ></TextInput>
+                </View>
+            </View>
+            <Button title="ADD WORKOUT" onPress={execGetAllWorkouts}></Button>
         </View>
     );
 };
-
 const AddExerciseList = () => {
-    const [currentWorkoutName, setCurrentWorkoutName] = useState(undefined);
-    const [currentSetNumber, setCurrentSetNumber] = useState(undefined);
-
-    const [inputBox, setInputBox] = useState([]);
-
-    return <View style={styles.container}>{
-        
-    }
-        
-    </View>;
+    return (
+        <View style={[styles.InnerTextContainer, styles.TopTextContainer]}>
+            <Text style={styles.textTitle}>Exercise Type</Text>
+            <TextInput
+                style={styles.textInput}
+                keyboardType="default"
+                //value={}
+                maxLength={50}
+                placeholder="Enter Exercise"
+                placeholderTextColor={styles.textInput.color}
+                onChangeText={() => {}}
+            ></TextInput>
+        </View>
+    );
 };
-
-const renderAddExerciseListItem = (exercise: Exercise) => {
+/*
+const renderAddExerciseListItem = ({ item, index }: { item: any; index: number }) => {
     return (
         <View style={[styles.InnerTextContainer, styles.TopTextContainer]}>
             <Text style={styles.textTitle}>Exercise Type</Text>
@@ -103,8 +349,6 @@ const renderAddExerciseListItem = (exercise: Exercise) => {
             </View>
         </View>
         */
-    );
-};
 
 const styles = StyleSheet.create({
     container: {
