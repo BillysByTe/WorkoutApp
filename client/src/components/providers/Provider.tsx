@@ -1,6 +1,6 @@
 import { SQLiteProvider, type SQLiteDatabase } from "expo-sqlite";
 import { useState, Suspense } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
 
 export const workoutTable: string = `
                         CREATE TABLE IF NOT EXISTS workouts (
@@ -21,14 +21,6 @@ export const exerciseTable: string = `
 export function WorkoutProviders({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
-    if (isLoading) {
-        return (
-            <View>
-                <ActivityIndicator size="large" color="#ffffff" />
-            </View>
-        );
-    }
-
     const initDb = async (db: SQLiteDatabase) => {
         //const DATABASE_VERSION = 1;
         if (db) {
@@ -42,10 +34,25 @@ export function WorkoutProviders({ children }: { children: React.ReactNode }) {
             }
         }
     };
+    const Loading = () => {
+        return (
+            <View style={styles.container}>
+                <ActivityIndicator size="large" color="#a8a8a8" />
+            </View>
+        );
+    };
 
     return (
         <SQLiteProvider databaseName="workout.db" onInit={initDb}>
-            {children}
+            {isLoading ? <Loading /> : children}
         </SQLiteProvider>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+});
