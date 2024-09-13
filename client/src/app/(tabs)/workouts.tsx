@@ -13,7 +13,7 @@ export default function WorkoutScreen() {
             <View style={styles.titleContainer}>
                 <Text style={styles.text}>Workouts</Text>
                 <TouchableOpacity style={styles.toggleButton} onPress={() => setisModalVisible(true)}>
-                    <MaterialCommunityIcons name="plus" size={35} color={Colors.dark.secondary} />
+                    <MaterialCommunityIcons name="plus" size={35} color={Colors.dark.textTertiary} />
                 </TouchableOpacity>
             </View>
             <WorkoutList />
