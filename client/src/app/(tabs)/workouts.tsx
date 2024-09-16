@@ -2,22 +2,21 @@ import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import { Colors } from "@/src/constants/Colors";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { WorkoutList } from "@/src/components/WorkoutList";
-import { AddWorkoutModal } from "@/src/components/modals/WorkoutModal";
+import { Link } from "expo-router";
+import { WorkoutList } from "@/src/components/workout/WorkoutList";
 
 export default function WorkoutScreen() {
-    const [isModalVisible, setisModalVisible] = useState(false);
-
     return (
         <View style={styles.container}>
             <View style={styles.titleContainer}>
                 <Text style={styles.text}>Workouts</Text>
-                <TouchableOpacity style={styles.toggleButton} onPress={() => setisModalVisible(true)}>
-                    <MaterialCommunityIcons name="plus" size={35} color={Colors.dark.textTertiary} />
+                <TouchableOpacity style={styles.toggleButton}>
+                    <Link push href="/workout/AddWorkout" style={styles.text}>
+                        <MaterialCommunityIcons name="plus" size={35} color={Colors.dark.textTertiary} />
+                    </Link>
                 </TouchableOpacity>
             </View>
             <WorkoutList />
-            <AddWorkoutModal isVisible={isModalVisible} onClose={() => setisModalVisible(false)} />
         </View>
     );
 }
@@ -29,6 +28,7 @@ const styles = StyleSheet.create({
     titleContainer: {
         backgroundColor: Colors.dark.secondaryBackground,
         padding: 15,
+        paddingTop: 40,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
@@ -40,6 +40,7 @@ const styles = StyleSheet.create({
         padding: 15,
     },
     toggleButton: {
+        paddingTop: 25,
         position: "absolute",
         right: 10,
     },
