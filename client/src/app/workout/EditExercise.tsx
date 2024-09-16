@@ -25,13 +25,11 @@ export default function EditExercisePage() {
 
     // Refs: execEditExercise()
     const handleAddPress = () => {
-        /*
         const addRef = editRef.current;
 
         if (addRef) {
             addRef.execEditExercise();
         }
-            */
     };
 
     return <EditExercise ref={editRef} exerciseId={exerciseIdInt} />;
