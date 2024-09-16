@@ -9,7 +9,7 @@ CREATE TABLE exercises (
     name VARCHAR(50) NOT NULL,
     sets INT NOT NULL CHECK (sets >= 0 and sets <= 100),
     repetitions INT NOT NULL CHECK (repetitions >= 0 and repetitions <= 100),
-    FOREIGN KEY (workoutId) REFERENCES workout (id) ON DELETE CASCADE
+    FOREIGN KEY (workoutId) REFERENCES workouts (id) ON DELETE CASCADE
 );
 
 CREATE TABLE exercise_set(

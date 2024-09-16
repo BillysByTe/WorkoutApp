@@ -1,7 +1,7 @@
 import { StyleSheet, View, TouchableOpacity, Modal, Text } from "react-native";
 import { useRef } from "react";
 import { Colors } from "@/src/constants/Colors";
-import { AddWorkout } from "@/src/services/addWorkout.services";
+import { AddWorkout } from "../workout/AddWorkout";
 
 export function AddWorkoutModal({ isVisible, onClose }: { isVisible: boolean; onClose: () => void }) {
     const addWorkoutRef = useRef<any>(null);
