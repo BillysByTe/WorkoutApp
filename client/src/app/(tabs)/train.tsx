@@ -3,11 +3,7 @@ import { Colors } from "../../../src/constants/Colors";
 import { StopWatch } from "@/src/components/StopWatch";
 
 export default function TrainingScreen() {
-    return (
-        <View style={styles.container}>
-            <StopWatch />
-        </View>
-    );
+    return <StopWatch />;
 }
 
 const styles = StyleSheet.create({
